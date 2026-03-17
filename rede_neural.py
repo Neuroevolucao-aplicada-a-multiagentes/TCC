@@ -4,6 +4,10 @@ import numpy as np
 
 class RedeNeural:
     def __init__(self, input_size=INPUT_SIZE, hidden_size=HIDDEN_SIZE, output_size=OUTPUT_SIZE):
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+    
         #pesos aleatorios
         self.w1 = np.random.randn(input_size, hidden_size)
         self.w2 = np.random.randn(hidden_size, output_size)
@@ -21,7 +25,7 @@ class RedeNeural:
         return out
     
     def copy(self):
-        nova_rede = RedeNeural()
+        nova_rede = RedeNeural(self.input_size, self.hidden_size, self.output_size)
 
         nova_rede.w1 = np.copy(self.w1)
         nova_rede.w2 = np.copy(self.w2)
