@@ -16,7 +16,7 @@ class Agente:
         self.fitness = 0
 
 
-    def mover(self, dt, resource_pos):
+    def mover(self, dt, resource_pos, obstaculos=None):
         dx = resource_pos.x - self.pos.x
         dy = resource_pos.y - self.pos.y
         dist = self.pos.distance_to(resource_pos)
@@ -26,8 +26,20 @@ class Agente:
         output = self.brain.forward(inputs)
 
         self.vel = pygame.Vector2(output[0], output[1])
+        deslocamento = self.vel * 200 * dt
 
-        self.pos += self.vel * 200 * dt
+        if obstaculos:
+            novo_x = self.pos.x + deslocamento.x
+            hitbox_x = pygame.Rect(int(novo_x - self.tamanho), int(self.pos.y - self.tamanho), self.tamanho * 2, self.tamanho * 2)
+            if not any(hitbox_x.colliderect(obs) for obs in obstaculos):
+                self.pos.x = novo_x
+
+            novo_y = self.pos.y + deslocamento.y
+            hitbox_y = pygame.Rect(int(self.pos.x - self.tamanho), int(novo_y - self.tamanho), self.tamanho * 2, self.tamanho * 2)
+            if not any(hitbox_y.colliderect(obs) for obs in obstaculos):
+                self.pos.y = novo_y
+        else:
+            self.pos += deslocamento
 
 
         #volta no mapa
