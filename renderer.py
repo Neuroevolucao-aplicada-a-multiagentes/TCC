@@ -222,7 +222,7 @@ class EstoqueRenderer:
         num_colunas = 5
         linhas = [2, 3, 5, 6]
         rack_w = int(self._cell_w) - 14
-        rack_h = int(self._cell_h) - 16
+        rack_h = int(self._cell_h) - 30
 
         x_min = int(self.largura * 0.14)
         x_max = int(self.largura * 0.86) - rack_w
@@ -254,7 +254,7 @@ class EstoqueRenderer:
             pygame.draw.rect(self.screen, self.cor_caixa, caixa_1, border_radius=2)
             pygame.draw.rect(self.screen, self.cor_caixa, caixa_2, border_radius=2)
 
-    def _desenhar_agentes(self, agentes_pos: List[Tuple[float, float]]):
+    def _desenhar_agentes(self, agentes):
         paleta = [
             (64, 136, 213),
             (92, 176, 107),
@@ -262,37 +262,66 @@ class EstoqueRenderer:
             (147, 117, 212),
         ]
 
-        for i, (x, y) in enumerate(agentes_pos):
+        for i, agente in enumerate(agentes):
+            x = agente.pos.x
+            y = agente.pos.y
             px = int(x)
             py = int(y)
-            cor_uniforme = paleta[i % len(paleta)]
 
-            # sombra
+            if getattr(agente, "controlavel", False):
+                cor_uniforme = (255, 170, 0)  # laranja para destacar
+            else:
+                cor_uniforme = paleta[i % len(paleta)]
+
             pygame.draw.ellipse(self.screen, (96, 104, 112), pygame.Rect(px - 7, py + 8, 14, 5))
-
-            # pernas
             pygame.draw.line(self.screen, (46, 56, 66), (px - 3, py + 8), (px - 5, py + 13), 2)
             pygame.draw.line(self.screen, (46, 56, 66), (px + 3, py + 8), (px + 5, py + 13), 2)
 
-            # tronco
             tronco = pygame.Rect(px - 5, py - 1, 10, 11)
             pygame.draw.rect(self.screen, cor_uniforme, tronco, border_radius=4)
 
-            # braços
             pygame.draw.line(self.screen, cor_uniforme, (px - 5, py + 2), (px - 9, py + 4), 2)
             pygame.draw.line(self.screen, cor_uniforme, (px + 5, py + 2), (px + 9, py + 4), 2)
 
-            # cabeça e capacete
             pygame.draw.circle(self.screen, (236, 204, 175), (px, py - 4), 4)
             pygame.draw.circle(self.screen, self.cor_capacete, (px, py - 7), 4)
             pygame.draw.rect(self.screen, self.cor_capacete, pygame.Rect(px - 4, py - 7, 8, 3), border_radius=2)
 
-    def renderizar(self, agentes: Iterable, resource_pos: pygame.Vector2):
+            if getattr(agente, "controlavel", False):
+                pygame.draw.circle(self.screen, (255, 255, 255), (px, py - 14), 3)
+
+    def renderizar(self, agentes: Iterable, resource_pos: pygame.Vector2, item=None, zona_entrega=None):
         estado = self.adapter.ler_estado(agentes, resource_pos)
         self._desenhar_piso()
         self._desenhar_estrutura()
         self._desenhar_grid_base()
         self._desenhar_layout_racks()
-        self._desenhar_agentes(estado.agentes_pos)
+        self._desenhar_agentes(list(agentes))
+
+        if zona_entrega is not None:
+            self.desenhar_zona_entrega(zona_entrega)
+
+        if item is not None:
+            self.desenhar_item(item)
+
         pygame.draw.circle(self.screen, self.cor_recurso, resource_pos, 10)
         pygame.draw.circle(self.screen, (220, 229, 255), resource_pos, 4)
+        
+        
+
+    def desenhar_zona_entrega(self, zona_rect: pygame.Rect):
+        pygame.draw.rect(self.screen, (190, 60, 60), zona_rect, border_radius=8)
+        pygame.draw.rect(self.screen, (240, 240, 240), zona_rect, 2, border_radius=8)
+
+        texto = self.font.render("ENTREGA", True, (255, 255, 255))
+        self.screen.blit(texto, (zona_rect.x + 6, zona_rect.y + 8))
+    
+    def desenhar_item(self, item):
+        if item is None or item.coletado:
+            return
+
+        x = int(item.pos.x)
+        y = int(item.pos.y)
+
+        pygame.draw.circle(self.screen, (70, 90, 220), (x, y), 6)
+        pygame.draw.circle(self.screen, (220, 230, 255), (x, y), 2)

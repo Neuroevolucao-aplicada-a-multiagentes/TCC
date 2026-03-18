@@ -13,3 +13,9 @@ VELOCIDADE_AGENTE = float(os.getenv("VELOCIDADE_AGENTE", 200))
 INPUT_SIZE = int(os.getenv("INPUT_SIZE", 3))
 HIDDEN_SIZE = int(os.getenv("HIDDEN_SIZE", 6))
 OUTPUT_SIZE = int(os.getenv("OUTPUT_SIZE", 2))
+
+# ponto de entrega
+ENTREGA_X = 820
+ENTREGA_Y = 560
+ENTREGA_LARGURA = 70
+ENTREGA_ALTURA = 70
