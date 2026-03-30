@@ -4,9 +4,21 @@ import random
 os.environ["LARGURA_MAPA"] = "1920"
 os.environ["ALTURA_MAPA"] = "1080"
 
+# Carrega variáveis de ambiente ANTES de usar
+from dotenv import load_dotenv
+load_dotenv()
+
 import pygame
 from constantes import ALTURA_MAPA, LARGURA_MAPA, NUM_AGENTES, FPS
 from agente import Agente
+
+# Importa módulo de Supabase (opcional - só ativa se houver credenciais)
+try:
+    from supabase_handler import SupabaseHandler
+    SUPABASE_ENABLED = True
+except ImportError:
+    SUPABASE_ENABLED = False
+    print("[!] Supabase não configurado. Execute: pip install supabase==2.0.3")
 
 GEN_DURATION = 20.0
 ELITE_RATIO = 0.2
@@ -30,6 +42,29 @@ ACCEL = 1000.0
 DRAG = 0.85
 WALL_BOUNCE = 0.3
 WALL_PUSH_PENALTY = 4.0
+
+
+def _get_experiment_params():
+    """
+    Coleta todos os parâmetros do experimento em um dicionário
+    Isso permite rastreabilidade completa: você saberá EXATAMENTE quais
+    configurações foram usadas em cada geração
+    
+    Returns:
+        dict com todos os parâmetros
+    """
+    return {
+        'mutation_rate': MUTATION_RATE,
+        'elite_ratio': ELITE_RATIO,
+        'mutation_strength': MUTATION_STRENGTH,
+        'progress_reward': PROGRESS_REWARD,
+        'reach_bonus': REACH_BONUS,
+        'hold_bonus': HOLD_BONUS,
+        'wall_penalty': WALL_PENALTY,
+        'distance_penalty': DISTANCE_PENALTY,
+        'gen_duration': GEN_DURATION,
+        'num_agentes': NUM_AGENTES,
+    }
 
 
 def criar_agentes(n):
@@ -179,6 +214,22 @@ def main():
     resource_pos = pygame.Vector2(LARGURA_MAPA - 200, ALTURA_MAPA / 2)
     generation = 1
     gen_elapsed = 0.0
+    
+    # ============================================================
+    # INICIALIZA SUPABASE (se credenciais estiverem disponíveis)
+    # ============================================================
+    supabase_handler = None
+    if SUPABASE_ENABLED:
+        SUPABASE_URL = os.getenv("SUPABASE_URL")
+        SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+        
+        if SUPABASE_URL and SUPABASE_KEY:
+            supabase_handler = SupabaseHandler(SUPABASE_URL, SUPABASE_KEY)
+            print("[✓] Banco de dados ativado!")
+        else:
+            print("[!] SUPABASE_URL ou SUPABASE_KEY não configuradas no .env")
+
+    experiment_params = _get_experiment_params()
 
     while running:
         for event in pygame.event.get():
@@ -197,6 +248,17 @@ def main():
         dt = clock.tick(FPS) / 1000.0
         gen_elapsed += dt
         if gen_elapsed >= GEN_DURATION:
+            # ============================================================
+            # SALVA DADOS DA GERAÇÃO NO SUPABASE
+            # ============================================================
+            if supabase_handler:
+                supabase_handler.save_generation_data(
+                    generation_number=generation,
+                    duration=gen_elapsed,
+                    agentes=agentes,
+                    params=experiment_params
+                )
+            
             agentes = evoluir(agentes)
             generation += 1
             gen_elapsed = 0.0
