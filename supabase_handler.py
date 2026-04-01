@@ -1,26 +1,3 @@
-"""
-=====================================================
-MÓDULO DE INTEGRAÇÃO COM SUPABASE
-=====================================================
-
-Este módulo gerencia toda a comunicação com o banco de dados PostgreSQL
-hospedado no Supabase. Ele salva:
-1. Metadados de cada geração
-2. Estatísticas de fitness (média, max, min, desvio padrão)
-3. Melhores agentes (com seus pesos de rede neural)
-
-Uso:
-    from supabase_handler import SupabaseHandler
-    
-    handler = SupabaseHandler(url, key)
-    handler.save_generation_data(
-        generation_number=1,
-        duration=20.0,
-        agentes=agentes,
-        params=params
-    )
-"""
-
 import json
 from datetime import datetime
 from statistics import mean, median, stdev
@@ -30,26 +7,12 @@ from supabase import create_client, Client
 
 class SupabaseHandler:
     def __init__(self, url: str, key: str):
-        """
-        Inicializa conexão com Supabase
-        
-        Args:
-            url: URL do projeto Supabase (ex: https://xxxx.supabase.co)
-            key: Chave anon do Supabase (de Settings > API)
-        """
+       
         self.client: Client = create_client(url, key)
         print("[✓] Conectado ao Supabase com sucesso!")
     
     def _agent_network_to_dict(self, brain):
-        """
-        Converte a rede neural de um agente para formato JSON serializável
-        
-        Args:
-            brain: Objeto RedeNeural com w1, w2, b1, b2
-            
-        Returns:
-            dict com os pesos em formato lista
-        """
+
         return {
             'w1': brain.w1.tolist(),
             'w2': brain.w2.tolist(),
@@ -59,25 +22,9 @@ class SupabaseHandler:
     
     def save_generation_data(self, generation_number: int, duration: float, 
                             agentes: list, params: dict) -> bool:
-        """
-        Salva todos os dados de uma geração no banco de dados
-        
-        Fluxo:
-        1. Cria registro na tabela 'generations'
-        2. Calcula estatísticas e salva em 'generation_stats'
-        3. Salva os N melhores agentes em 'best_agents'
-        
-        Args:
-            generation_number: Número da geração (1, 2, 3, ...)
-            duration: Tempo de duração da geração em segundos
-            agentes: Lista de objetos AgenteSolido da geração
-            params: Dict com parâmetros do experimento
-            
-        Returns:
-            True se sucesso, False se erro
-        """
+
         try:
-            # PASSO 1: Inserir na tabela 'generations'
+            # Insere na tabela 'generations'
             print(f"\n[⏳] Salvando geração {generation_number}...")
             
             generation_data = {
@@ -98,7 +45,7 @@ class SupabaseHandler:
             generation_id = response.data[0]['id']
             print(f"[✓] Geração criada com ID {generation_id}")
             
-            # PASSO 2: Calcular e salvar estatísticas
+            # Calcula e salva estatísticas
             fitness_scores = [a.fitness for a in agentes]
             success_count = sum(1 for a in agentes if a.reached)
             time_alive_scores = [a.time_alive for a in agentes]
@@ -121,7 +68,7 @@ class SupabaseHandler:
             print(f"    └─ Fitness Máximo: {stats['max_fitness']:.2f}")
             print(f"    └─ Taxa de Sucesso: {stats['success_rate']:.1%}")
             
-            # PASSO 3: Salvar os melhores agentes
+            # Salva os melhores agentes
             agentes_ordenados = sorted(agentes, key=lambda a: a.fitness, reverse=True)
             TOP_N = 3  # Salva os 3 melhores agentes
             
@@ -152,15 +99,7 @@ class SupabaseHandler:
             return False
     
     def get_generation_stats(self, generation_number: int) -> dict:
-        """
-        Recupera estatísticas de uma geração específica
-        
-        Args:
-            generation_number: Número da geração
-            
-        Returns:
-            Dict com estatísticas ou None se não encontrado
-        """
+
         try:
             response = self.client.table('generation_stats').select(
                 '*, generations(generation_number)'
@@ -172,18 +111,7 @@ class SupabaseHandler:
             return None
     
     def get_evolution_comparison(self, gen_start: int, gen_end: int) -> dict:
-        """
-        Comparação da evolução entre duas gerações
-        
-        Mostra como o fitness médio, máximo e taxa de sucesso evoluíram
-        
-        Args:
-            gen_start: Geração inicial
-            gen_end: Geração final
-            
-        Returns:
-            Dict com dados de evolução ou None
-        """
+
         try:
             # Usa a VIEW 'generation_evolution' para comparação
             response = self.client.table('generation_evolution').select('*').gte(
@@ -196,18 +124,7 @@ class SupabaseHandler:
             return None
     
     def get_best_agent_network(self, generation_number: int, rank: int = 1):
-        """
-        Recover a rede neural do melhor agente de uma geração
-        
-        Útil para reconstruir e testar um agente antigo
-        
-        Args:
-            generation_number: Número da geração
-            rank: Rank do agente (1 = melhor, 2 = segundo melhor, etc)
-            
-        Returns:
-            Dict com os pesos da rede ou None
-        """
+
         try:
             response = self.client.table('best_agents').select('*').eq(
                 'agent_rank', rank
@@ -229,12 +146,7 @@ class SupabaseHandler:
             return None
     
     def list_all_generations(self) -> list:
-        """
-        Lista todas as gerações armazenadas
-        
-        Returns:
-            Lista de dicts com info de cada geração
-        """
+
         try:
             response = self.client.table('generation_evolution').select('*').execute()
             return response.data
@@ -243,12 +155,7 @@ class SupabaseHandler:
             return []
     
     def export_comparison_report(self, output_file: str = "evolution_report.json"):
-        """
-        Exporta relatório completo de evolução em JSON
-        
-        Args:
-            output_file: Nome do arquivo de saída
-        """
+
         try:
             data = self.list_all_generations()
             with open(output_file, 'w') as f:

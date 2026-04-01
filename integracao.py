@@ -215,9 +215,6 @@ def main():
     generation = 1
     gen_elapsed = 0.0
     
-    # ============================================================
-    # INICIALIZA SUPABASE (se credenciais estiverem disponíveis)
-    # ============================================================
     supabase_handler = None
     if SUPABASE_ENABLED:
         SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -248,9 +245,7 @@ def main():
         dt = clock.tick(FPS) / 1000.0
         gen_elapsed += dt
         if gen_elapsed >= GEN_DURATION:
-            # ============================================================
-            # SALVA DADOS DA GERAÇÃO NO SUPABASE
-            # ============================================================
+
             if supabase_handler:
                 supabase_handler.save_generation_data(
                     generation_number=generation,
