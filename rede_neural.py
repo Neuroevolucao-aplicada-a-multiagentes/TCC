@@ -8,13 +8,11 @@ class RedeNeural:
         self.hidden_size = hidden_size
         self.output_size = output_size
     
-        #pesos aleatorios
-        self.w1 = np.random.randn(input_size, hidden_size)
-        self.w2 = np.random.randn(hidden_size, output_size)
+        self.w1 = np.random.randn(input_size, hidden_size) * np.sqrt(1 / input_size)
+        self.w2 = np.random.randn(hidden_size, output_size) * np.sqrt(1 / hidden_size)
 
-        #bias
-        self.b1 = np.random.randn(hidden_size)
-        self.b2 = np.random.randn(output_size)
+        self.b1 = np.zeros(hidden_size)
+        self.b2 = np.zeros(output_size)
 
     def forward(self, x):
         x = np.array(x)
@@ -33,6 +31,18 @@ class RedeNeural:
         nova_rede.b2 = np.copy(self.b2)
         
         return nova_rede
+
+    def crossover(self, outra_rede):
+        filho = self.copy()
+
+        for attr in ["w1", "w2", "b1", "b2"]:
+            a = getattr(self, attr)
+            b = getattr(outra_rede, attr)
+
+            mask = np.random.rand(*a.shape) > 0.5
+            setattr(filho, attr, np.where(mask, a, b))
+
+        return filho
     
     def mutate(self, rate=0.1, strength=0.2):
         for matrix in [self.w1, self.w2]:
