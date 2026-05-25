@@ -3,14 +3,22 @@ from constantes import *
 from agente import Agente
 from renderer import EstoqueRenderer
 import random
+import os
+import csv
 from dataclasses import dataclass
 
 USAR_REDE_PRETREINADA = True
+SEED_DEMO = 42
+CHECKPOINT_DEMO = "tcc_neuroevolucao/melhor_rede_fase5.npz"
+SALVAR_CSV = True
+CSV_PATH = "runs/snapshots.csv"
+
+random.seed(SEED_DEMO)
 
 controlador = None
 if USAR_REDE_PRETREINADA:
     from controlador_neural import ControladorNeural
-    controlador = ControladorNeural("tcc_neuroevolucao/melhor_rede_fase5.npz")
+    controlador = ControladorNeural(CHECKPOINT_DEMO)
 
 
 @dataclass
@@ -206,6 +214,11 @@ total_frames = 0
 LIMITE_TRAVADO_FRAMES = int(FPS * 3.0)
 FLASH_FRAMES = int(FPS * 0.5)
 
+snapshots = []
+NOME_REDE = os.path.basename(CHECKPOINT_DEMO) if USAR_REDE_PRETREINADA else "treinando do zero"
+font_hud_titulo = pygame.font.SysFont(None, 22)
+font_hud_valor = pygame.font.SysFont(None, 26)
+
 while running:
     dt = clock.tick(FPS) / 1000
     tempo_geracao += dt
@@ -258,9 +271,18 @@ while running:
         total_coletas = sum(a.coletas for a in agentes)
         total_entregas = sum(a.itens_entregues for a in agentes)
         total_colisoes = sum(a.colisoes for a in agentes)
+        total_manut = sum(reposicionamentos)
+        snapshots.append({
+            "tempo": round(tempo_real, 1),
+            "coletas": total_coletas,
+            "entregas": total_entregas,
+            "colisoes": total_colisoes,
+            "manutencoes": total_manut,
+        })
         print(
             f"[{tempo_real:5.1f}s] coletas={total_coletas:3d} "
-            f"entregas={total_entregas:3d} colisoes={total_colisoes:4d}",
+            f"entregas={total_entregas:3d} colisoes={total_colisoes:4d} "
+            f"manut={total_manut:3d}",
             flush=True,
         )
         ultimo_print = tempo_real
@@ -308,49 +330,46 @@ while running:
                        (int(agente.pos.x) - raio - 2, int(agente.pos.y) - raio - 2))
             flash_restante[idx] -= 1
 
-    texto_geracao = font.render(
-        f"Geração: {geracao}",
-        True,
-        (255, 255, 255)
-    )
-
+    texto_geracao = font.render(f"Geração: {geracao}", True, (255, 255, 255))
     texto_tempo = font.render(
-        f"Tempo: {tempo_geracao:.1f}s / {DURACAO_GERACAO}s",
-        True,
-        (255, 255, 255)
+        f"Tempo: {tempo_real:.1f}s",
+        True, (255, 255, 255)
     )
+    screen.blit(texto_geracao, (16, 14))
+    screen.blit(texto_tempo, (16, 40))
 
-    texto_fitness = font.render(
-        f"Fitness médio anterior: {fitness_medio_anterior:.2f}",
-        True,
-        (255, 255, 255)
-    )
+    if USAR_REDE_PRETREINADA:
+        hud_total_coletas = sum(a.coletas for a in agentes)
+        hud_total_entregas = sum(a.itens_entregues for a in agentes)
+        hud_total_colisoes = sum(a.colisoes for a in agentes)
+        hud_total_manut = sum(reposicionamentos)
 
-    texto_entregas = font.render(
-        f"Entregas geração anterior: {entregas_anteriores}",
-        True,
-        (255, 255, 255)
-    )
+        hud_linhas = [
+            ("Rede", NOME_REDE),
+            ("Coletas", str(hud_total_coletas)),
+            ("Entregas", str(hud_total_entregas)),
+            ("Colisões", str(hud_total_colisoes)),
+            ("Manutenções", str(hud_total_manut)),
+        ]
 
-    texto_colisoes = font.render(
-        f"Colisões geração anterior: {colisoes_anteriores}",
-        True,
-        (255, 255, 255)
-    )
+        hud_w = 230
+        hud_h = 26 + len(hud_linhas) * 32
+        hud_x = LARGURA_MAPA - hud_w - 12
+        hud_y = 12
 
-    texto_coletas = font.render(
-        f"Coletas geração anterior: {coletas_anteriores}",
-        True,
-        (255, 255, 255)
-    )
+        painel = pygame.Surface((hud_w, hud_h), pygame.SRCALPHA)
+        pygame.draw.rect(painel, (20, 24, 30, 200), painel.get_rect(), border_radius=8)
+        pygame.draw.rect(painel, (255, 255, 255, 60), painel.get_rect(), 1, border_radius=8)
+        screen.blit(painel, (hud_x, hud_y))
 
-    screen.blit(texto_geracao, (10, 10))
-    screen.blit(texto_tempo, (10, 35))
-    screen.blit(texto_fitness, (10, 60))
-    screen.blit(texto_coletas, (10, 85))
-    screen.blit(texto_entregas, (10, 110))
-    screen.blit(texto_colisoes, (10, 135))
-    #screen.blit(texto_atual, (10, 160))
+        for i, (rotulo, valor) in enumerate(hud_linhas):
+            base_y = hud_y + 14 + i * 32
+            txt_rotulo = font_hud_titulo.render(rotulo, True, (180, 195, 215))
+            txt_valor = font_hud_valor.render(valor, True, (255, 255, 255))
+            screen.blit(txt_rotulo, (hud_x + 14, base_y))
+            valor_rect = txt_valor.get_rect()
+            valor_rect.topright = (hud_x + hud_w - 14, base_y - 2)
+            screen.blit(txt_valor, valor_rect)
 
     pygame.display.flip()
 
@@ -386,5 +405,13 @@ total_col = sum(a.colisoes for a in agentes)
 print(f"TOT {total_c:>7d} {total_e:>8d} {total_col:>8d}")
 print(f"taxa entrega/coleta = {(total_e / total_c * 100) if total_c else 0:.1f}%")
 print(f"colisoes/min = {total_col / max(0.01, tempo_real / 60):.1f}")
+
+if SALVAR_CSV and snapshots:
+    os.makedirs(os.path.dirname(CSV_PATH), exist_ok=True)
+    with open(CSV_PATH, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["tempo", "coletas", "entregas", "colisoes", "manutencoes"])
+        writer.writeheader()
+        writer.writerows(snapshots)
+    print(f"snapshots salvos em {CSV_PATH} ({len(snapshots)} linhas)")
 
 pygame.quit()
