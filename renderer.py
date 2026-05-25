@@ -138,11 +138,11 @@ class EstoqueRenderer:
         self._cell_w = self.largura / self.cols
         self._cell_h = self.altura / self.rows
 
-        self.cor_fundo: Color = (202, 207, 214)
-        self.cor_doca: Color = (164, 172, 181)
+        self.cor_fundo: Color = (148, 156, 168)
+        self.cor_doca: Color = (118, 126, 138)
         self.cor_faixa: Color = (238, 196, 74)
-        self.cor_corredor: Color = (186, 194, 203)
-        self.cor_grid: Color = (176, 184, 192)
+        self.cor_corredor: Color = (170, 178, 190)
+        self.cor_grid: Color = (130, 138, 150)
         self.cor_sombra: Color = (95, 100, 107)
         self.cor_rack: Color = (72, 79, 89)
         self.cor_rack_topo: Color = (100, 111, 125)
@@ -165,31 +165,22 @@ class EstoqueRenderer:
 
     def _desenhar_piso(self):
         self.screen.fill(self.cor_fundo)
-        doca = pygame.Rect(0, 0, self.largura, int(self.altura * 0.14))
-        pygame.draw.rect(self.screen, self.cor_doca, doca)
 
-        faixa_w = 24
-        for i in range(0, self.largura, faixa_w):
-            if (i // faixa_w) % 2 == 0:
-                pygame.draw.rect(
-                    self.screen,
-                    self.cor_faixa,
-                    pygame.Rect(i, int(self.altura * 0.12), faixa_w, 10),
-                )
+        doca = pygame.Rect(0, 0, self.largura, int(self.altura * 0.12))
+        pygame.draw.rect(self.screen, self.cor_doca, doca)
+        pygame.draw.line(
+            self.screen, (90, 96, 105),
+            (0, int(self.altura * 0.12)),
+            (self.largura, int(self.altura * 0.12)),
+            2,
+        )
 
         corredor_h = pygame.Rect(0, int(self.altura * 0.44), self.largura, int(self.altura * 0.09))
-        corredor_v = pygame.Rect(int(self.largura * 0.49), int(self.altura * 0.14), int(self.largura * 0.09), int(self.altura * 0.86))
+        corredor_v = pygame.Rect(int(self.largura * 0.49), int(self.altura * 0.12), int(self.largura * 0.09), int(self.altura * 0.88))
         pygame.draw.rect(self.screen, self.cor_corredor, corredor_h, border_radius=6)
         pygame.draw.rect(self.screen, self.cor_corredor, corredor_v, border_radius=6)
 
     def _desenhar_grid_base(self):
-        for row in range(self.rows):
-            for col in range(self.cols):
-                x = int(col * self._cell_w)
-                y = int(row * self._cell_h)
-                rect = pygame.Rect(x + 1, y + 1, int(self._cell_w) - 2, int(self._cell_h) - 2)
-                pygame.draw.rect(self.screen, (223, 228, 233), rect, 1, border_radius=3)
-
         for col in range(self.cols + 1):
             x = int(col * self._cell_w)
             pygame.draw.line(self.screen, self.cor_grid, (x, 0), (x, self.altura), 1)
@@ -198,28 +189,25 @@ class EstoqueRenderer:
             pygame.draw.line(self.screen, self.cor_grid, (0, y), (self.largura, y), 1)
 
     def _desenhar_estrutura(self):
-        bloco_lateral = pygame.Rect(int(self.largura * 0.02), int(self.altura * 0.2), int(self.largura * 0.09), int(self.altura * 0.68))
-        pygame.draw.rect(self.screen, (157, 165, 175), bloco_lateral, border_radius=8)
-        bloco_lateral_direito = pygame.Rect(
-            int(self.largura * 0.89),
-            int(self.altura * 0.2),
-            int(self.largura * 0.09),
-            int(self.altura * 0.68),
-        )
-        pygame.draw.rect(self.screen, (157, 165, 175), bloco_lateral_direito, border_radius=8)
+        cor_parede = (108, 116, 128)
+        cor_parede_top = (138, 146, 158)
+        espessura = 8
 
-        pallets = [
-            pygame.Rect(int(self.largura * 0.84), int(self.altura * 0.03), 40, 26),
-            pygame.Rect(int(self.largura * 0.89), int(self.altura * 0.03), 40, 26),
-        ]
-        for pallet in pallets:
-            pygame.draw.rect(self.screen, self.cor_caixa, pallet, border_radius=3)
-            pygame.draw.line(self.screen, (126, 91, 58), (pallet.x + 6, pallet.y + 8), (pallet.x + 34, pallet.y + 8), 2)
-            pygame.draw.line(self.screen, (126, 91, 58), (pallet.x + 6, pallet.y + 16), (pallet.x + 34, pallet.y + 16), 2)
+        pygame.draw.rect(self.screen, cor_parede,
+                         pygame.Rect(0, 0, espessura, self.altura))
+        pygame.draw.rect(self.screen, cor_parede,
+                         pygame.Rect(self.largura - espessura, 0, espessura, self.altura))
+        pygame.draw.rect(self.screen, cor_parede,
+                         pygame.Rect(0, self.altura - espessura, self.largura, espessura))
+
+        pygame.draw.rect(self.screen, cor_parede_top,
+                         pygame.Rect(0, 0, espessura, 4))
+        pygame.draw.rect(self.screen, cor_parede_top,
+                         pygame.Rect(self.largura - espessura, 0, espessura, 4))
 
     def _criar_racks(self) -> List[pygame.Rect]:
         racks: List[pygame.Rect] = []
-        num_colunas = 5
+        num_colunas = 3
         linhas = [2, 3, 5, 6]
         rack_w = int(self._cell_w) - 14
         rack_h = int(self._cell_h) - 30
@@ -273,22 +261,19 @@ class EstoqueRenderer:
             else:
                 cor_uniforme = paleta[i % len(paleta)]
 
-            pygame.draw.ellipse(self.screen, (96, 104, 112), pygame.Rect(px - 7, py + 8, 14, 5))
-            pygame.draw.line(self.screen, (46, 56, 66), (px - 3, py + 8), (px - 5, py + 13), 2)
-            pygame.draw.line(self.screen, (46, 56, 66), (px + 3, py + 8), (px + 5, py + 13), 2)
+            pygame.draw.ellipse(self.screen, (70, 76, 84),
+                                pygame.Rect(px - 7, py + 6, 14, 4))
 
-            tronco = pygame.Rect(px - 5, py - 1, 10, 11)
-            pygame.draw.rect(self.screen, cor_uniforme, tronco, border_radius=4)
-
-            pygame.draw.line(self.screen, cor_uniforme, (px - 5, py + 2), (px - 9, py + 4), 2)
-            pygame.draw.line(self.screen, cor_uniforme, (px + 5, py + 2), (px + 9, py + 4), 2)
+            tronco = pygame.Rect(px - 5, py - 1, 10, 9)
+            pygame.draw.rect(self.screen, cor_uniforme, tronco, border_radius=3)
 
             pygame.draw.circle(self.screen, (236, 204, 175), (px, py - 4), 4)
             pygame.draw.circle(self.screen, self.cor_capacete, (px, py - 7), 4)
-            pygame.draw.rect(self.screen, self.cor_capacete, pygame.Rect(px - 4, py - 7, 8, 3), border_radius=2)
+            pygame.draw.rect(self.screen, self.cor_capacete,
+                             pygame.Rect(px - 4, py - 7, 8, 2), border_radius=1)
 
             if getattr(agente, "controlavel", False):
-                pygame.draw.circle(self.screen, (255, 255, 255), (px, py - 14), 3)
+                pygame.draw.circle(self.screen, (255, 255, 255), (px, py - 12), 2)
 
     def renderizar(self, agentes: Iterable, resource_pos: pygame.Vector2, item=None, zona_entrega=None):
         estado = self.adapter.ler_estado(agentes, resource_pos)
@@ -304,10 +289,6 @@ class EstoqueRenderer:
         if item is not None:
             self.desenhar_item(item)
 
-        pygame.draw.circle(self.screen, self.cor_recurso, resource_pos, 10)
-        pygame.draw.circle(self.screen, (220, 229, 255), resource_pos, 4)
-        
-        
 
     def desenhar_zona_entrega(self, zona_rect: pygame.Rect):
         pygame.draw.rect(self.screen, (190, 60, 60), zona_rect, border_radius=8)

@@ -7,7 +7,7 @@ class Agente:
     def __init__(self, x, y):
         self.pos = pygame.Vector2(x, y)
         self.vel = pygame.Vector2(0, 0)
-        self.tamanho = 10
+        self.tamanho = 8
 
         self.brain = RedeNeural()
         self.fitness = 0
@@ -22,6 +22,8 @@ class Agente:
         self.colisoes = 0
         self.coletas = 0
         self.em_colisao = False
+
+        self.controlador_externo = None
 
     def resetar(self, x, y):
         self.pos = pygame.Vector2(x, y)
@@ -176,7 +178,10 @@ class Agente:
             dist_entrega / DIAGONAL_MAPA
         ]
 
-        output = self.brain.forward(inputs)
+        if self.controlador_externo is not None:
+            output = self.controlador_externo.decidir(self)
+        else:
+            output = self.brain.forward(inputs)
 
         self.vel = pygame.Vector2(output[0], output[1])
 
